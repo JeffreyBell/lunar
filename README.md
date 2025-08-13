@@ -1,1 +1,1 @@
-# lunar
+# lunar.  The ancient game
