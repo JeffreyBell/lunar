@@ -10,25 +10,31 @@
 // Global variables
 //
 // A - Alt - Altitude (miles)
-// G - Gravity
-// I - Intermediate altitude (miles)
-// J - Intermediate velocity (miles/sec)
+// G - Gravitational constant
+// I - NextAlt - Intermediate altitude (miles)
+// J - NextV - Intermediate velocity (miles/sec)
 // K - Fuel rate (lbs/sec)
 // L - Elapsed time (sec)
 // M - Mass -  Total weight (lbs)
 // N - Fuel - Empty weight (lbs, Note: M - N is remaining fuel weight)
 // S - Time elapsed in current 10-second turn (sec)
-// T - Time remaining in current 10-second turn (sec)
+// T - Timestep - Time remaining in current 10-second turn (sec)
 // V - Downward speed (miles/sec)
 // W - Temporary working variable
-// Z - Thrust per pound of fuel burned
+// Z - SpecificImpulse Thrust per pound of fuel burned
 
-static double Alt, G, I, J, K, L, Mass, Fuel, S, T, V, W, Z;
+static double Alt, NextAlt, NextV, K, L, Mass, Fuel, S, Timestep, V, W;
+
+// physical constants
+static const double G = .001;
+static const double SpecificImpulse = 1.8;
 
 static int echo_input = 0;
 
 static void update_lander_state();
 static void apply_thrust();
+
+static void prompt_for_k();
 
 // Input routines (substitutes for FOCAL ACCEPT command)
 static int accept_double(double *value);
@@ -45,6 +51,7 @@ int main(int argc, const char **argv)
             echo_input = 1;
     }
 
+    // Pint Preamble
     puts("CONTROL CALLING LUNAR MODULE. MANUAL CONTROL IS NECESSARY");
     puts("YOU MAY RESET FUEL RATE K EACH 10 SECS TO 0 OR ANY VALUE");
     puts("BETWEEN 8 & 200 LBS/SEC. YOU'VE 16000 LBS FUEL. ESTIMATED");
@@ -60,8 +67,6 @@ int main(int argc, const char **argv)
         V = 1;
         Mass = 32500;
         Fuel = 16500;
-        G = .001;
-        Z = 1.8;
         L = 0;
 
     start_turn: // 02.10 in original FOCAL code
@@ -72,18 +77,9 @@ int main(int argc, const char **argv)
                3600 * V,
                Mass - Fuel);
 
-    prompt_for_k:
-        fputs("K=:", stdout);
-        int is_valid_input = accept_double(&K);
-        if (!is_valid_input || K < 0 || ((0 < K) && (K < 8)) || K > 200)
-        {
-            fputs("NOT POSSIBLE", stdout);
-            for (int x = 1; x <= 51; ++x)
-                putchar('.');
-            goto prompt_for_k;
-        }
+        prompt_for_k();
 
-        T = 10;
+        Timestep = 10;
 
     turn_loop:
         for (;;) // 03.10 in original FOCAL code
@@ -91,20 +87,20 @@ int main(int argc, const char **argv)
             if (Mass - Fuel < .001)
                 goto fuel_out;
 
-            if (T < .001)
+            if (Timestep < .001)
                 goto start_turn;
 
-            S = T;
+            S = Timestep;
 
             if (Fuel + S * K - Mass > 0)
                 S = (Mass - Fuel) / K;
 
             apply_thrust();
 
-            if (I <= 0)
+            if (NextAlt <= 0)
                 goto loop_until_on_the_moon;
 
-            if ((V > 0) && (J < 0))
+            if ((V > 0) && (NextV < 0))
             {
                 for (;;) // 08.10 in original FOCAL code
                 {
@@ -114,13 +110,13 @@ int main(int argc, const char **argv)
                     // original FOCAL subexpression `M * G / Z * K` can't be
                     // copied as-is into C: `Z * K` has to be parenthesized to
                     // get the same result.
-                    W = (1 - Mass * G / (Z * K)) / 2;
-                    S = Mass * V / (Z * K * (W + sqrt(W * W + V / Z))) + 0.5;
+                    W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
+                    S = Mass * V / (SpecificImpulse * K * (W + sqrt(W * W + V / SpecificImpulse))) + 0.5;
                     apply_thrust();
-                    if (I <= 0)
+                    if (NextAlt <= 0)
                         goto loop_until_on_the_moon;
                     update_lander_state();
-                    if (-J < 0)
+                    if (-NextV < 0)
                         goto turn_loop;
                     if (V <= 0)
                         goto turn_loop;
@@ -133,7 +129,7 @@ int main(int argc, const char **argv)
     loop_until_on_the_moon: // 07.10 in original FOCAL code
         while (S >= .005)
         {
-            S = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - Z * K / Mass)));
+            S = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - SpecificImpulse * K / Mass)));
             apply_thrust();
             update_lander_state();
         }
@@ -172,16 +168,16 @@ int main(int argc, const char **argv)
     puts("CONTROL OUT\n\n");
 
     return 0;
-}
+} // main
 
 // Subroutine at line 06.10 in original FOCAL code
 void update_lander_state()
 {
     L += S;
-    T -= S;
+    Timestep -= S;
     Mass -= S * K;
-    Alt = I;
-    V = J;
+    Alt = NextAlt;
+    V = NextV;
 }
 
 // Subroutine at line 09.10 in original FOCAL code
@@ -193,8 +189,40 @@ void apply_thrust()
     double Q_4 = pow(Q, 4);
     double Q_5 = pow(Q, 5);
 
-    J = V + G * S + Z * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
-    I = Alt - G * S * S / 2 - V * S + Z * S * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
+    NextV = V + G * S + SpecificImpulse * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
+    NextAlt = Alt - G * S * S / 2 - V * S + SpecificImpulse * S * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
+}
+
+// Give some hints.
+void prompt_for_k(){
+    int first_time = 1;
+    while (1) {
+        if (!first_time) {
+            // Get all the way over to the right column again
+            fputs("NOT POSSIBLE", stdout);
+            for (int x = 1; x <= 51; ++x)
+                putchar('.');
+        }
+        first_time=0;
+        fputs("K=:", stdout);
+        int is_valid_input = accept_double(&K);
+        if (!is_valid_input)
+            continue;
+        if (K < 0) {
+            fputs("No Negative Numbers\n", stdout);
+            continue;
+        }
+        if ((0 < K) && (K < 8)) {
+            fputs("Minimum nonzero thrust is 8.\n", stdout);
+            continue;
+        }
+        if ( K > 200) {
+            fputs("Too Big\n", stdout);
+            continue;
+        }
+        break;
+    }
+    // Fall through on success.
 }
 
 // Read a floating-point value from stdin.
