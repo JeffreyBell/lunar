@@ -9,21 +9,21 @@
 
 // Global variables
 //
-// A - Altitude (miles)
+// A - Alt - Altitude (miles)
 // G - Gravity
 // I - Intermediate altitude (miles)
 // J - Intermediate velocity (miles/sec)
 // K - Fuel rate (lbs/sec)
 // L - Elapsed time (sec)
-// M - Total weight (lbs)
-// N - Empty weight (lbs, Note: M - N is remaining fuel weight)
+// M - Mass -  Total weight (lbs)
+// N - Fuel - Empty weight (lbs, Note: M - N is remaining fuel weight)
 // S - Time elapsed in current 10-second turn (sec)
 // T - Time remaining in current 10-second turn (sec)
 // V - Downward speed (miles/sec)
 // W - Temporary working variable
 // Z - Thrust per pound of fuel burned
 
-static double A, G, I, J, K, L, M, N, S, T, V, W, Z;
+static double Alt, G, I, J, K, L, Mass, Fuel, S, T, V, W, Z;
 
 static int echo_input = 0;
 
@@ -56,10 +56,10 @@ int main(int argc, const char **argv)
         puts("COMMENCE LANDING PROCEDURE");
         puts("TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE");
 
-        A = 120;
+        Alt = 120;
         V = 1;
-        M = 32500;
-        N = 16500;
+        Mass = 32500;
+        Fuel = 16500;
         G = .001;
         Z = 1.8;
         L = 0;
@@ -67,10 +67,10 @@ int main(int argc, const char **argv)
     start_turn: // 02.10 in original FOCAL code
         printf("%7.0f%16.0f%7.0f%15.2f%12.1f      ",
                L,
-               trunc(A),
-               5280 * (A - trunc(A)),
+               trunc(Alt),
+               5280 * (Alt - trunc(Alt)),
                3600 * V,
-               M - N);
+               Mass - Fuel);
 
     prompt_for_k:
         fputs("K=:", stdout);
@@ -88,7 +88,7 @@ int main(int argc, const char **argv)
     turn_loop:
         for (;;) // 03.10 in original FOCAL code
         {
-            if (M - N < .001)
+            if (Mass - Fuel < .001)
                 goto fuel_out;
 
             if (T < .001)
@@ -96,8 +96,8 @@ int main(int argc, const char **argv)
 
             S = T;
 
-            if (N + S * K - M > 0)
-                S = (M - N) / K;
+            if (Fuel + S * K - Mass > 0)
+                S = (Mass - Fuel) / K;
 
             apply_thrust();
 
@@ -114,8 +114,8 @@ int main(int argc, const char **argv)
                     // original FOCAL subexpression `M * G / Z * K` can't be
                     // copied as-is into C: `Z * K` has to be parenthesized to
                     // get the same result.
-                    W = (1 - M * G / (Z * K)) / 2;
-                    S = M * V / (Z * K * (W + sqrt(W * W + V / Z))) + 0.5;
+                    W = (1 - Mass * G / (Z * K)) / 2;
+                    S = Mass * V / (Z * K * (W + sqrt(W * W + V / Z))) + 0.5;
                     apply_thrust();
                     if (I <= 0)
                         goto loop_until_on_the_moon;
@@ -133,7 +133,7 @@ int main(int argc, const char **argv)
     loop_until_on_the_moon: // 07.10 in original FOCAL code
         while (S >= .005)
         {
-            S = 2 * A / (V + sqrt(V * V + 2 * A * (G - Z * K / M)));
+            S = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - Z * K / Mass)));
             apply_thrust();
             update_lander_state();
         }
@@ -141,7 +141,7 @@ int main(int argc, const char **argv)
 
     fuel_out: // 04.10 in original FOCAL code
         printf("FUEL OUT AT %8.2f SECS\n", L);
-        S = (sqrt(V * V + 2 * A * G) - V) / G;
+        S = (sqrt(V * V + 2 * Alt * G) - V) / G;
         V += G * S;
         L += S;
 
@@ -149,7 +149,7 @@ int main(int argc, const char **argv)
         printf("ON THE MOON AT %8.2f SECS\n", L);
         W = 3600 * V;
         printf("IMPACT VELOCITY OF %8.2f M.P.H.\n", W);
-        printf("FUEL LEFT: %8.2f LBS\n", M - N);
+        printf("FUEL LEFT: %8.2f LBS\n", Mass - Fuel);
         if (W <= 1)
             puts("PERFECT LANDING !-(LUCKY)");
         else if (W <= 10)
@@ -179,22 +179,22 @@ void update_lander_state()
 {
     L += S;
     T -= S;
-    M -= S * K;
-    A = I;
+    Mass -= S * K;
+    Alt = I;
     V = J;
 }
 
 // Subroutine at line 09.10 in original FOCAL code
 void apply_thrust()
 {
-    double Q = S * K / M;
+    double Q = S * K / Mass;
     double Q_2 = pow(Q, 2);
     double Q_3 = pow(Q, 3);
     double Q_4 = pow(Q, 4);
     double Q_5 = pow(Q, 5);
 
     J = V + G * S + Z * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
-    I = A - G * S * S / 2 - V * S + Z * S * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
+    I = Alt - G * S * S / 2 - V * S + Z * S * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
 }
 
 // Read a floating-point value from stdin.
