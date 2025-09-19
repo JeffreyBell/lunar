@@ -20,10 +20,9 @@
 // S - Time elapsed in current 10-second turn (sec)
 // T - Timestep - Time remaining in current 10-second turn (sec)
 // V - Downward speed (miles/sec)
-// W - Temporary working variable
 // Z - SpecificImpulse Thrust per pound of fuel burned
 
-static double Alt, NextAlt, NextV, K, L, Mass, Fuel, S, Timestep, V, W;
+static double Alt, NextAlt, NextV, K, L, Mass, Fuel, S, Timestep, V;
 
 // physical constants
 static const double G = .001;
@@ -34,9 +33,10 @@ static int echo_input = 0;
 static void update_lander_state();
 static void apply_thrust();
 
-static void prompt_for_k();
+static void report_landing();
 
 // Input routines (substitutes for FOCAL ACCEPT command)
+static void prompt_for_k();
 static int accept_double(double *value);
 static int accept_yes_or_no();
 static void accept_line(char **buffer, size_t *buffer_length);
@@ -100,6 +100,8 @@ int main(int argc, const char **argv)
             if (NextAlt <= 0)
                 goto loop_until_on_the_moon;
 
+            // Special case where were swoop.
+            // We reversed direction and started going back up.
             if ((V > 0) && (NextV < 0))
             {
                 for (;;) // 08.10 in original FOCAL code
@@ -110,7 +112,7 @@ int main(int argc, const char **argv)
                     // original FOCAL subexpression `M * G / Z * K` can't be
                     // copied as-is into C: `Z * K` has to be parenthesized to
                     // get the same result.
-                    W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
+                    double W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
                     S = Mass * V / (SpecificImpulse * K * (W + sqrt(W * W + V / SpecificImpulse))) + 0.5;
                     apply_thrust();
                     if (NextAlt <= 0)
@@ -141,26 +143,9 @@ int main(int argc, const char **argv)
         V += G * S;
         L += S;
 
-    on_the_moon: // 05.10 in original FOCAL code
-        printf("ON THE MOON AT %8.2f SECS\n", L);
-        W = 3600 * V;
-        printf("IMPACT VELOCITY OF %8.2f M.P.H.\n", W);
-        printf("FUEL LEFT: %8.2f LBS\n", Mass - Fuel);
-        if (W <= 1)
-            puts("PERFECT LANDING !-(LUCKY)");
-        else if (W <= 10)
-            puts("GOOD LANDING-(COULD BE BETTER)");
-        else if (W <= 22)
-            puts("CONGRATULATIONS ON A POOR LANDING");
-        else if (W <= 40)
-            puts("CRAFT DAMAGE. GOOD LUCK");
-        else if (W <= 60)
-            puts("CRASH LANDING-YOU'VE 5 HRS OXYGEN");
-        else
-        {
-            puts("SORRY,BUT THERE WERE NO SURVIVORS-YOU BLEW IT!");
-            printf("IN FACT YOU BLASTED A NEW LUNAR CRATER %8.2f FT. DEEP\n", W * .277777);
-        }
+        // Report landing quality.
+    on_the_moon:
+        report_landing();
 
         puts("\n\n\nTRY AGAIN?");
     } while (accept_yes_or_no());
@@ -192,6 +177,32 @@ void apply_thrust()
     NextV = V + G * S + SpecificImpulse * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
     NextAlt = Alt - G * S * S / 2 - V * S + SpecificImpulse * S * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
 }
+
+void report_landing()
+{
+    printf("ON THE MOON AT %8.2f SECS\n", L);
+    double W = 3600 * V;
+    printf("IMPACT VELOCITY OF %8.2f M.P.H.\n", W);
+    printf("FUEL LEFT: %8.2f LBS\n", Mass - Fuel);
+    if (W <= 1)
+        puts("PERFECT LANDING !-(LUCKY)");
+    else if (W <= 10)
+        puts("GOOD LANDING-(COULD BE BETTER)");
+    else if (W <= 22)
+        puts("CONGRATULATIONS ON A POOR LANDING");
+    else if (W <= 40)
+        puts("CRAFT DAMAGE. GOOD LUCK");
+    else if (W <= 60)
+        puts("CRASH LANDING-YOU'VE 5 HRS OXYGEN");
+    else
+    {
+        puts("SORRY,BUT THERE WERE NO SURVIVORS-YOU BLEW IT!");
+        printf("IN FACT YOU BLASTED A NEW LUNAR CRATER %8.2f FT. DEEP\n", W * .277777);
+    }
+}
+
+
+
 
 // Give some hints.
 void prompt_for_k(){
