@@ -16,13 +16,13 @@
 // K - Fuel rate (lbs/sec)
 // L - Elapsed - Elapsed time (sec)
 // M - Mass -  Total weight (lbs)
-// N - Fuel - Empty weight (lbs, Note: M - N is remaining fuel weight)
-// S - Time elapsed in current 10-second turn (sec)
-// T - Timestep - Time remaining in current 10-second turn (sec)
+// N - EmptyWeight - Empty weight (lbs, Note: M - N is remaining fuel weight)
+// SubTimestep - Time elapsed in current 10-second turn (sec)
+// T - FullTimestep - Time remaining in current 10-second turn (sec)
 // V - Downward speed (miles/sec)
 // Z - SpecificImpulse Thrust per pound of fuel burned
 
-static double Alt, NextAlt, NextV, K, Elapsed, Mass, Fuel, S, Timestep, V;
+static double Alt, NextAlt, NextV, K, Elapsed, Mass, EmptyWeight, SubTimestep, FullTimestep, V;
 
 // physical constants
 static const double G = .001;
@@ -41,6 +41,13 @@ static void prompt_for_k();
 static int accept_double(double *value);
 static int accept_yes_or_no();
 static void accept_line(char **buffer, size_t *buffer_length);
+
+// Coming soon: trun outcomes.
+enum TurnResult {
+    NORMAL,
+    FUELOUT,
+    IMPACT
+};
 
 int main(int argc, const char **argv)
 {
@@ -76,60 +83,56 @@ static void play_a_game(){
     Alt = 120;
     V = 1;
     Mass = 32500;
-    Fuel = 16500;
+    EmptyWeight = 16500;
     Elapsed = 0;
 
-start_turn: // 02.10 in original FOCAL code
+start_turn:
     printf("%7.0f%16.0f%7.0f%15.2f%12.1f      ",
             Elapsed,
             trunc(Alt),
             5280 * (Alt - trunc(Alt)),
             3600 * V,
-            Mass - Fuel);
+            Mass - EmptyWeight);
 
     prompt_for_k();
 
-    Timestep = 10;
+    FullTimestep = 10;
 
 turn_loop:
-    for (;;) // 03.10 in original FOCAL code
+    for (;;)
     {
-        if (Mass - Fuel < .001)
+        if (Mass - EmptyWeight < .001)
             goto fuel_out;
 
-        if (Timestep < .001)
+        if (FullTimestep < .001)
             goto start_turn;
 
-        S = Timestep;
+        SubTimestep = FullTimestep;
 
-        if (Fuel + S * K - Mass > 0)
-            S = (Mass - Fuel) / K;
+        // Gonna run out of fuel this step.
+        if (EmptyWeight + SubTimestep * K - Mass > 0)
+            SubTimestep = (Mass - EmptyWeight) / K;
 
         apply_thrust();
 
         if (NextAlt <= 0)
-            goto loop_until_on_the_moon;
+            goto loop_until_on_the_moon; // impact
 
-        // Special case where were swoop.
+        // Special case where we swoop.
         // We reversed direction and started going back up.
+        // We might hit ground in the midddle so subdivide the subtime.
         if ((V > 0) && (NextV < 0))
         {
-            for (;;) // 08.10 in original FOCAL code
+            for (;;)
             {
-                // FOCAL-to-C gotcha: In FOCAL, multiplication has a higher
-                // precedence than division.  In C, they have the same
-                // precedence and are evaluated left-to-right.  So the
-                // original FOCAL subexpression `M * G / Z * K` can't be
-                // copied as-is into C: `Z * K` has to be parenthesized to
-                // get the same result.
                 double W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
-                S = Mass * V / (SpecificImpulse * K * (W + sqrt(W * W + V / SpecificImpulse))) + 0.5;
+                SubTimestep = Mass * V / (SpecificImpulse * K * (W + sqrt(W * W + V / SpecificImpulse))) + 0.5;
                 apply_thrust();
                 if (NextAlt <= 0)
-                    goto loop_until_on_the_moon;
+                    goto loop_until_on_the_moon; // impact
                 update_lander_state();
-                if (-NextV < 0)
-                    goto turn_loop;
+                if (NextV > 0)
+                    goto turn_loop;  // Going Down next.  Normal.
                 if (V <= 0)
                     goto turn_loop;
             }
@@ -138,20 +141,20 @@ turn_loop:
         update_lander_state();
     }
 
-loop_until_on_the_moon: // 07.10 in original FOCAL code
-    while (S >= .005)
+loop_until_on_the_moon:
+    while (SubTimestep >= .005)
     {
-        S = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - SpecificImpulse * K / Mass)));
+        SubTimestep = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - SpecificImpulse * K / Mass)));
         apply_thrust();
         update_lander_state();
     }
     goto on_the_moon;
 
-fuel_out: // 04.10 in original FOCAL code
+fuel_out:
     printf("FUEL OUT AT %8.2f SECS\n", Elapsed);
-    S = (sqrt(V * V + 2 * Alt * G) - V) / G;
-    V += G * S;
-    Elapsed += S;
+    SubTimestep = (sqrt(V * V + 2 * Alt * G) - V) / G;
+    V += G * SubTimestep;
+    Elapsed += SubTimestep;
 
     // Report landing quality.
 on_the_moon:
@@ -159,29 +162,28 @@ on_the_moon:
     }
 
 
-
-// Subroutine at line 06.10 in original FOCAL code
+// Update next states to the game state
 void update_lander_state()
 {
-    Elapsed += S;
-    Timestep -= S;
-    Mass -= S * K;
+    Elapsed += SubTimestep;
+    FullTimestep -= SubTimestep;
+    Mass -= SubTimestep * K;
     Alt = NextAlt;
     V = NextV;
 }
 
-// Subroutine at line 09.10 in original FOCAL code
+// Calculate next state
 void apply_thrust()
 {
     // Taylor series?
-    double Q = S * K / Mass;
+    double Q = SubTimestep * K / Mass;
     double Q_2 = pow(Q, 2);
     double Q_3 = pow(Q, 3);
     double Q_4 = pow(Q, 4);
     double Q_5 = pow(Q, 5);
 
-    NextV = V + G * S + SpecificImpulse * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
-    NextAlt = Alt - G * S * S / 2 - V * S + SpecificImpulse * S * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
+    NextV = V + G * SubTimestep + SpecificImpulse * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
+    NextAlt = Alt - G * SubTimestep * SubTimestep / 2 - V * SubTimestep + SpecificImpulse * SubTimestep * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
 }
 
 void report_landing()
@@ -189,7 +191,7 @@ void report_landing()
     printf("ON THE MOON AT %8.2f SECS\n", Elapsed);
     double Mph = 3600 * V;
     printf("IMPACT VELOCITY OF %8.2f M.P.H.\n", Mph);
-    printf("FUEL LEFT: %8.2f LBS\n", Mass - Fuel);
+    printf("FUEL LEFT: %8.2f LBS\n", Mass - EmptyWeight);
     if (Mph <= 1)
         puts("PERFECT LANDING !-(LUCKY)");
     else if (Mph <= 10)
