@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 
 // Global variables
 //
@@ -28,13 +29,15 @@ static double Alt, NextAlt, NextV, K, Elapsed, Mass, EmptyWeight, SubTimestep, F
 static const double G = .001;
 static const double SpecificImpulse = 1.8;
 
-static int echo_input = 0;
+static bool echo_input = false;
 
 static void update_lander_state();
 static void apply_thrust();
 
 static void play_a_game();
 static void report_landing();
+
+static void print_status();
 
 // Input routines (substitutes for FOCAL ACCEPT command)
 static void prompt_for_k();
@@ -56,7 +59,7 @@ int main(int argc, const char **argv)
         // If --echo is present, then write all input back to standard output.
         // (This is useful for testing with files as redirected input.)
         if (strcmp(argv[1], "--echo") == 0)
-            echo_input = 1;
+            echo_input = true;
     }
 
     // Print Preamble
@@ -71,7 +74,8 @@ int main(int argc, const char **argv)
         puts("CONTROL OUT\n\n");
         puts("\n\n\nTRY AGAIN?");
     } while (accept_yes_or_no());
-    return 0;
+
+    exit(0);
 } // main
 
 
@@ -87,13 +91,8 @@ static void play_a_game(){
     Elapsed = 0;
 
 start_turn:
-    printf("%7.0f%16.0f%7.0f%15.2f%12.1f      ",
-            Elapsed,
-            trunc(Alt),
-            5280 * (Alt - trunc(Alt)),
-            3600 * V,
-            Mass - EmptyWeight);
 
+    print_status();
     prompt_for_k();
 
     FullTimestep = 10;
@@ -209,17 +208,26 @@ void report_landing()
     }
 }
 
+void print_status(){
+    printf("%7.0f%16.0f%7.0f%15.2f%12.1f      ",
+            Elapsed,
+            trunc(Alt),
+            5280 * (Alt - trunc(Alt)),
+            3600 * V,
+            Mass - EmptyWeight);
+}
+
 // Give some hints.
 void prompt_for_k(){
-    int first_time = 1;
-    while (1) {
+    bool first_time = true;
+    while (true) {
         if (!first_time) {
             // Get all the way over to the right column again
             fputs("NOT POSSIBLE", stdout);
             for (int x = 1; x <= 51; ++x)
                 putchar('.');
         }
-        first_time=0;
+        first_time = false;
         fputs("K=:", stdout);
         int is_valid_input = accept_double(&K);
         if (!is_valid_input)
