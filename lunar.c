@@ -45,7 +45,7 @@ static int accept_double(double *value);
 static int accept_yes_or_no();
 static void accept_line(char **buffer, size_t *buffer_length);
 
-// Coming soon: trun outcomes.
+// Coming soon: turn outcomes.
 enum TurnResult {
     NORMAL,
     FUELOUT,
@@ -84,6 +84,7 @@ static void play_a_game(){
     puts("COMMENCE LANDING PROCEDURE");
     puts("TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE");
 
+    // Setup intial conditions
     Alt = 120;
     V = 1;
     Mass = 32500;
