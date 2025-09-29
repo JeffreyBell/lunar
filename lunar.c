@@ -29,12 +29,20 @@ static double Alt, NextAlt, NextV, K, Elapsed, Mass, EmptyWeight, SubTimestep, F
 static const double G = .001;
 static const double SpecificImpulse = 1.8;
 
+// Turn outcomes.
+typedef enum {
+    NORMAL,
+    FUELOUT,
+    IMPACT
+} TurnResult;
+
 static bool echo_input = false;
 
 static void update_lander_state();
 static void apply_thrust();
 
 static void play_a_game();
+static TurnResult perform_turn_loop();
 static void report_landing();
 
 static void print_status();
@@ -45,12 +53,6 @@ static int accept_double(double *value);
 static int accept_yes_or_no();
 static void accept_line(char **buffer, size_t *buffer_length);
 
-// Coming soon: turn outcomes.
-enum TurnResult {
-    NORMAL,
-    FUELOUT,
-    IMPACT
-};
 
 int main(int argc, const char **argv)
 {
@@ -91,21 +93,49 @@ static void play_a_game(){
     EmptyWeight = 16500;
     Elapsed = 0;
 
-start_turn:
+    TurnResult loop_result;
 
-    print_status();
-    prompt_for_k();
+    for (;;){
+        // was start_turn loop.
+        print_status();
+        prompt_for_k();
 
-    FullTimestep = 10;
+        FullTimestep = 10;
 
-turn_loop:
+        loop_result = perform_turn_loop();
+
+        if (loop_result != NORMAL ) {
+            break;
+        }
+    }
+
+    if (loop_result == IMPACT ) {
+        // loop_until_on_the_moon
+        while (SubTimestep >= .005)
+        {
+            SubTimestep = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - SpecificImpulse * K / Mass)));
+            apply_thrust();
+            update_lander_state();
+        }
+    } else if (loop_result == FUELOUT) {
+        // fuel_out
+        printf("FUEL OUT AT %8.2f SECS\n", Elapsed);
+        SubTimestep = (sqrt(V * V + 2 * Alt * G) - V) / G;
+        V += G * SubTimestep;
+        Elapsed += SubTimestep;
+    }
+    // Report landing quality.
+    report_landing();
+}
+
+TurnResult perform_turn_loop(){
     for (;;)
     {
         if (Mass - EmptyWeight < .001)
-            goto fuel_out;
+            return FUELOUT;
 
         if (FullTimestep < .001)
-            goto start_turn;
+            return NORMAL;
 
         SubTimestep = FullTimestep;
 
@@ -116,7 +146,7 @@ turn_loop:
         apply_thrust();
 
         if (NextAlt <= 0)
-            goto loop_until_on_the_moon; // impact
+            return IMPACT; // impact
 
         // Special case where we swoop.
         // We reversed direction and started going back up.
@@ -129,38 +159,18 @@ turn_loop:
                 SubTimestep = Mass * V / (SpecificImpulse * K * (W + sqrt(W * W + V / SpecificImpulse))) + 0.5;
                 apply_thrust();
                 if (NextAlt <= 0)
-                    goto loop_until_on_the_moon; // impact
+                    return IMPACT; // impact
                 update_lander_state();
                 if (NextV > 0)
-                    goto turn_loop;  // Going Down next.  Normal.
+                    continue;  // Going Down next.  Normal.
                 if (V <= 0)
-                    goto turn_loop;
+                    continue;
             }
         }
 
         update_lander_state();
     }
-
-loop_until_on_the_moon:
-    while (SubTimestep >= .005)
-    {
-        SubTimestep = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - SpecificImpulse * K / Mass)));
-        apply_thrust();
-        update_lander_state();
-    }
-    goto on_the_moon;
-
-fuel_out:
-    printf("FUEL OUT AT %8.2f SECS\n", Elapsed);
-    SubTimestep = (sqrt(V * V + 2 * Alt * G) - V) / G;
-    V += G * SubTimestep;
-    Elapsed += SubTimestep;
-
-    // Report landing quality.
-on_the_moon:
-    report_landing();
-    }
-
+}
 
 // Update next states to the game state
 void update_lander_state()
