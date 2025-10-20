@@ -8,6 +8,13 @@
 #include <math.h>
 #include <stdbool.h>
 
+// Coming soon: turn outcomes.
+typedef enum  {
+    NORMAL,
+    FUELOUT,
+    IMPACT
+} TurnResult;
+
 // Global variables
 //
 // A - Alt - Altitude (miles)
@@ -31,29 +38,23 @@ static const double SpecificImpulse = 1.8;
 
 static bool echo_input = false;
 
-static void update_lander_state();
-static void apply_thrust();
+static void update_lander_state(void);
+static void apply_thrust(void);
 
-static void play_a_game();
-static void report_landing();
+static void play_a_game(void);
+static void report_landing(void);
 
-static void print_status();
+static void print_status(void);
 
 // Input routines (substitutes for FOCAL ACCEPT command)
-static void prompt_for_k();
+static void prompt_for_k(void);
 static int accept_double(double *value);
-static int accept_yes_or_no();
+static int accept_yes_or_no(void);
 static void accept_line(char **buffer, size_t *buffer_length);
 
-// Coming soon: trun outcomes.
-enum TurnResult {
-    NORMAL,
-    FUELOUT,
-    IMPACT
-};
 
-int main(int argc, const char **argv)
-{
+
+int main(int argc, const char **argv) {
     if (argc > 1)
     {
         // If --echo is present, then write all input back to standard output.
@@ -79,7 +80,7 @@ int main(int argc, const char **argv)
 } // main
 
 
-static void play_a_game(){
+static void play_a_game(void) {
     puts("FIRST RADAR CHECK COMING UP\n\n");
     puts("COMMENCE LANDING PROCEDURE");
     puts("TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE");
@@ -162,8 +163,7 @@ on_the_moon:
 
 
 // Update next states to the game state
-void update_lander_state()
-{
+void update_lander_state(void) {
     Elapsed += SubTimestep;
     FullTimestep -= SubTimestep;
     Mass -= SubTimestep * K;
@@ -172,8 +172,7 @@ void update_lander_state()
 }
 
 // Calculate next state
-void apply_thrust()
-{
+void apply_thrust(void) {
     // Taylor series?
     double Q = SubTimestep * K / Mass;
     double Q_2 = pow(Q, 2);
@@ -185,8 +184,7 @@ void apply_thrust()
     NextAlt = Alt - G * SubTimestep * SubTimestep / 2 - V * SubTimestep + SpecificImpulse * SubTimestep * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
 }
 
-void report_landing()
-{
+void report_landing(void) {
     printf("ON THE MOON AT %8.2f SECS\n", Elapsed);
     double Mph = 3600 * V;
     printf("IMPACT VELOCITY OF %8.2f M.P.H.\n", Mph);
@@ -208,7 +206,7 @@ void report_landing()
     }
 }
 
-void print_status(){
+void print_status(void) {
     printf("%7.0f%16.0f%7.0f%15.2f%12.1f      ",
             Elapsed,
             trunc(Alt),
@@ -218,7 +216,7 @@ void print_status(){
 }
 
 // Give some hints.
-void prompt_for_k(){
+void prompt_for_k(void) {
     bool first_time = true;
     while (true) {
         if (!first_time) {
@@ -254,8 +252,7 @@ void prompt_for_k(){
 // Returns 1 on success, or 0 if input did not contain a number.
 //
 // Calls exit(-1) on EOF or other failure to read input.
-int accept_double(double *value)
-{
+int accept_double(double *value) {
     char *buffer = NULL;
     size_t buffer_length = 0;
     accept_line(&buffer, &buffer_length);
@@ -272,8 +269,7 @@ int accept_double(double *value)
 // If input starts with none of those characters, prompt again.
 //
 // If unable to read input, calls exit(-1);
-int accept_yes_or_no()
-{
+int accept_yes_or_no(void) {
     int result = -1;
     do
     {
@@ -309,8 +305,7 @@ int accept_yes_or_no()
 // returned buffer.
 //
 // If unable to read input, calls exit(-1).
-void accept_line(char **buffer, size_t *buffer_length)
-{
+void accept_line(char **buffer, size_t *buffer_length) {
     if (getline(buffer, buffer_length, stdin) == -1)
     {
         fputs("\nEND OF INPUT\n", stderr);
