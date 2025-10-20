@@ -1,0 +1,53 @@
+CONTROL CALLING LUNAR MODULE. MANUAL CONTROL IS NECESSARY
+YOU MAY RESET FUEL RATE K EACH 10 SECS TO 0 OR ANY VALUE
+BETWEEN 8 & 200 LBS/SEC. YOU'VE 16000 LBS FUEL. ESTIMATED
+FREE FALL IMPACT TIME-120 SECS. CAPSULE WEIGHT-32500 LBS
+
+
+FIRST RADAR CHECK COMING UP
+
+
+COMMENCE LANDING PROCEDURE
+TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE
+      0             120      0        3600.00     16000.0      K=:0
+     10             109   5016        3636.00     16000.0      K=:0
+     20              99   4224        3672.00     16000.0      K=:0
+     30              89   2904        3708.00     16000.0      K=:0
+     40              79   1056        3744.00     16000.0      K=:0
+     50              68   3960        3780.00     16000.0      K=:0
+     60              58   1056        3816.00     16000.0      K=:0
+     70              47   2904        3852.00     16000.0      K=:180
+     80              37   1626        3518.79     14200.0      K=:200
+     90              28    438        3118.26     12200.0      K=:200
+    100              20     71        2686.18     10200.0      K=:200
+    110              13   1022        2217.65      8200.0      K=:200
+    120               7   3868        1706.49      6200.0      K=:200
+    130               3   4011        1144.83      4200.0      K=:200
+    140               1   2263         522.40      2200.0      K=:140
+    150               0   3267          54.14       800.0      K=:0
+    160               0   2209          90.14       800.0      K=:20
+    170               0   1174          50.80       600.0      K=:20
+    180               0    723          10.56       400.0      K=:10
+    190               0    586           8.10       300.0      K=:8
+    200               0    430          13.17       220.0      K=:8
+    210               0    200          18.09       140.0      K=:12
+    220               0     15           7.19        20.0      K=:0
+ON THE MOON AT   221.09 SECS
+IMPACT VELOCITY OF    11.11 M.P.H.
+FUEL LEFT:    20.00 LBS
+CONGRATULATIONS ON A POOR LANDING
+CONTROL OUT
+
+
+
+
+
+TRY AGAIN?
+(ANS. YES OR NO):100
+(ANS. YES OR NO):10
+(ANS. YES OR NO):20
+(ANS. YES OR NO):20
+(ANS. YES OR NO):10
+(ANS. YES OR NO):0
+(ANS. YES OR NO):0
+(ANS. YES OR NO):n

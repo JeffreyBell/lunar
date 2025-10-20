@@ -1,0 +1,47 @@
+CONTROL CALLING LUNAR MODULE. MANUAL CONTROL IS NECESSARY
+YOU MAY RESET FUEL RATE K EACH 10 SECS TO 0 OR ANY VALUE
+BETWEEN 8 & 200 LBS/SEC. YOU'VE 16000 LBS FUEL. ESTIMATED
+FREE FALL IMPACT TIME-120 SECS. CAPSULE WEIGHT-32500 LBS
+
+
+FIRST RADAR CHECK COMING UP
+
+
+COMMENCE LANDING PROCEDURE
+TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE
+      0             120      0        3600.00     16000.0      K=:0
+     10             109   5016        3636.00     16000.0      K=:0
+     20              99   4224        3672.00     16000.0      K=:0
+     30              89   2904        3708.00     16000.0      K=:0
+     40              79   1056        3744.00     16000.0      K=:200
+     50              69   1666        3368.43     14000.0      K=:0
+     60              59   4799        3404.43     14000.0      K=:0
+     70              50   2123        3440.43     14000.0      K=:170
+     80              41   1618        3104.80     12300.0      K=:200
+     90              33   1437        2674.41     10300.0      K=:200
+    100              26   2546        2207.83      8300.0      K=:200
+    110              21    240        1698.97      6300.0      K=:200
+    120              17    474        1140.06      4300.0      K=:200
+    130              14   4052         520.96      2300.0      K=:200
+    140              14   1392        -171.90       300.0      K=:160
+FUEL OUT AT   141.88 SECS
+ON THE MOON AT   406.99 SECS
+IMPACT VELOCITY OF   672.49 M.P.H.
+FUEL LEFT:     0.00 LBS
+SORRY,BUT THERE WERE NO SURVIVORS-YOU BLEW IT!
+IN FACT YOU BLASTED A NEW LUNAR CRATER   186.80 FT. DEEP
+CONTROL OUT
+
+
+
+
+
+TRY AGAIN?
+(ANS. YES OR NO):10
+(ANS. YES OR NO):10
+(ANS. YES OR NO):10
+(ANS. YES OR NO):10
+(ANS. YES OR NO):13
+(ANS. YES OR NO):0
+(ANS. YES OR NO):0
+(ANS. YES OR NO):n
