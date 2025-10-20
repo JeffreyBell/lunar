@@ -38,6 +38,7 @@ static const double SpecificImpulse = 1.8;
 
 static bool echo_input = false;
 
+static void setup_game(void);
 static void update_lander_state(void);
 static void apply_thrust(void);
 
@@ -79,17 +80,8 @@ int main(int argc, const char **argv) {
     exit(0);
 } // main
 
-
 static void play_a_game(void) {
-    puts("FIRST RADAR CHECK COMING UP\n\n");
-    puts("COMMENCE LANDING PROCEDURE");
-    puts("TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE");
-
-    Alt = 120;
-    V = 1;
-    Mass = 32500;
-    EmptyWeight = 16500;
-    Elapsed = 0;
+    setup_game();
 
 start_turn:
 
@@ -109,7 +101,7 @@ turn_loop:
 
         SubTimestep = FullTimestep;
 
-        // Gonna run out of fuel this step.
+        // If we are going to run out of fuel this step do a subdivide.
         if (EmptyWeight + SubTimestep * K - Mass > 0)
             SubTimestep = (Mass - EmptyWeight) / K;
 
@@ -137,7 +129,6 @@ turn_loop:
                     goto turn_loop;
             }
         }
-
         update_lander_state();
     }
 
@@ -159,8 +150,7 @@ fuel_out:
     // Report landing quality.
 on_the_moon:
     report_landing();
-    }
-
+}
 
 // Update next states to the game state
 void update_lander_state(void) {
@@ -169,6 +159,18 @@ void update_lander_state(void) {
     Mass -= SubTimestep * K;
     Alt = NextAlt;
     V = NextV;
+}
+
+static void setup_game(void) {
+    puts("FIRST RADAR CHECK COMING UP\n\n");
+    puts("COMMENCE LANDING PROCEDURE");
+    puts("TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE");
+
+    Alt = 120;
+    V = 1;
+    Mass = 32500;
+    EmptyWeight = 16500;
+    Elapsed = 0;
 }
 
 // Calculate next state
