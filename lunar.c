@@ -143,7 +143,7 @@ turn_loop:
     }
 }
 
-// Update next states to the game state
+// Update next states to the game state.
 void update_lander_state(void) {
     Elapsed += SubTimestep;
     FullTimestep -= SubTimestep;
@@ -209,7 +209,8 @@ void print_status(void) {
            5280 * (Alt - trunc(Alt)), 3600 * V, Mass - EmptyWeight);
 }
 
-// Give some hints.
+// Get next thrust value.
+// Give some hints if invalid.
 void prompt_for_k(void) {
     bool first_time = true;
     while (true) {
