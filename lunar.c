@@ -2,18 +2,14 @@
 // <http://www.cs.brandeis.edu/~storer/LunarLander/LunarLander/LunarLanderListing.jpg>
 // by Jim Storer from FOCAL to C.
 
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include <stdbool.h>
 
 // Coming soon: turn outcomes.
-typedef enum  {
-    NORMAL,
-    FUELOUT,
-    LOOP_UNTIL_ON_MOON
-} TurnResult;
+typedef enum { NORMAL, FUELOUT, LOOP_UNTIL_ON_MOON } TurnResult;
 
 // Global variables
 //
@@ -30,7 +26,8 @@ typedef enum  {
 // V - Downward speed (miles/sec)
 // Z - SpecificImpulse Thrust per pound of fuel burned
 
-static double Alt, NextAlt, NextV, K, Elapsed, Mass, EmptyWeight, SubTimestep, FullTimestep, V;
+static double Alt, NextAlt, NextV, K, Elapsed, Mass, EmptyWeight, SubTimestep,
+    FullTimestep, V;
 
 // physical constants
 static const double G = .001;
@@ -50,19 +47,15 @@ static void print_status(void);
 
 // Input routines (substitutes for FOCAL ACCEPT command)
 static void prompt_for_k(void);
-static int accept_double(double *value);
+static int accept_double(double* value);
 static int accept_yes_or_no(void);
-static void accept_line(char **buffer, size_t *buffer_length);
+static void accept_line(char** buffer, size_t* buffer_length);
 
-
-
-int main(int argc, const char **argv) {
-    if (argc > 1)
-    {
+int main(int argc, const char** argv) {
+    if (argc > 1) {
         // If --echo is present, then write all input back to standard output.
         // (This is useful for testing with files as redirected input.)
-        if (strcmp(argv[1], "--echo") == 0)
-            echo_input = true;
+        if (strcmp(argv[1], "--echo") == 0) echo_input = true;
     }
 
     // Print Preamble
@@ -79,7 +72,7 @@ int main(int argc, const char **argv) {
     } while (accept_yes_or_no());
 
     exit(0);
-} // main
+}  // main
 
 static void play_a_game(void) {
     setup_game();
@@ -87,9 +80,10 @@ static void play_a_game(void) {
     TurnResult final_turn_result = play_all_turns();
 
     if (final_turn_result == LOOP_UNTIL_ON_MOON) {
-        while (SubTimestep >= .005)
-        {
-            SubTimestep = 2 * Alt / (V + sqrt(V * V + 2 * Alt * (G - SpecificImpulse * K / Mass)));
+        while (SubTimestep >= .005) {
+            SubTimestep =
+                2 * Alt /
+                (V + sqrt(V * V + 2 * Alt * (G - SpecificImpulse * K / Mass)));
             apply_thrust();
             update_lander_state();
         }
@@ -104,7 +98,6 @@ static void play_a_game(void) {
     report_landing();
 }
 
-
 TurnResult play_all_turns(void) {
 start_turn:
 
@@ -114,13 +107,10 @@ start_turn:
     FullTimestep = 10;
 
 turn_loop:
-    for (;;)
-    {
-        if (Mass - EmptyWeight < .001)
-            return FUELOUT;
+    for (;;) {
+        if (Mass - EmptyWeight < .001) return FUELOUT;
 
-        if (FullTimestep < .001)
-            goto start_turn;
+        if (FullTimestep < .001) goto start_turn;
 
         SubTimestep = FullTimestep;
 
@@ -130,34 +120,28 @@ turn_loop:
 
         apply_thrust();
 
-        if (NextAlt <= 0)
-            return LOOP_UNTIL_ON_MOON; // impact
+        if (NextAlt <= 0) return LOOP_UNTIL_ON_MOON;  // impact
 
         // Special case where we swoop.
         // We reversed direction and started going back up.
         // We might hit ground in the midddle so subdivide the subtime.
-        if ((V > 0) && (NextV < 0))
-        {
-            for (;;)
-            {
+        if ((V > 0) && (NextV < 0)) {
+            for (;;) {
                 double W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
-                SubTimestep = Mass * V / (SpecificImpulse * K * (W + sqrt(W * W + V / SpecificImpulse))) + 0.5;
+                SubTimestep = Mass * V /
+                                  (SpecificImpulse * K *
+                                   (W + sqrt(W * W + V / SpecificImpulse))) +
+                              0.5;
                 apply_thrust();
-                if (NextAlt <= 0)
-                    return LOOP_UNTIL_ON_MOON; // impact
+                if (NextAlt <= 0) return LOOP_UNTIL_ON_MOON;  // impact
                 update_lander_state();
-                if (NextV > 0)
-                    goto turn_loop;  // Going Down next.  Normal.
-                if (V <= 0)
-                    goto turn_loop;
+                if (NextV > 0) goto turn_loop;  // Going Down next.  Normal.
+                if (V <= 0) goto turn_loop;
             }
         }
         update_lander_state();
     }
 }
-
-
-
 
 // Update next states to the game state
 void update_lander_state(void) {
@@ -171,7 +155,9 @@ void update_lander_state(void) {
 static void setup_game(void) {
     puts("FIRST RADAR CHECK COMING UP\n\n");
     puts("COMMENCE LANDING PROCEDURE");
-    puts("TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL RATE");
+    puts(
+        "TIME,SECS   ALTITUDE,MILES+FEET   VELOCITY,MPH   FUEL,LBS   FUEL "
+        "RATE");
 
     Alt = 120;
     V = 1;
@@ -189,8 +175,11 @@ void apply_thrust(void) {
     double Q_4 = pow(Q, 4);
     double Q_5 = pow(Q, 5);
 
-    NextV = V + G * SubTimestep + SpecificImpulse * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
-    NextAlt = Alt - G * SubTimestep * SubTimestep / 2 - V * SubTimestep + SpecificImpulse * SubTimestep * (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
+    NextV = V + G * SubTimestep +
+            SpecificImpulse * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
+    NextAlt = Alt - G * SubTimestep * SubTimestep / 2 - V * SubTimestep +
+              SpecificImpulse * SubTimestep *
+                  (Q / 2 + Q_2 / 6 + Q_3 / 12 + Q_4 / 20 + Q_5 / 30);
 }
 
 void report_landing(void) {
@@ -208,20 +197,16 @@ void report_landing(void) {
         puts("CRAFT DAMAGE. GOOD LUCK");
     else if (Mph <= 60)
         puts("CRASH LANDING-YOU'VE 5 HRS OXYGEN");
-    else
-    {
+    else {
         puts("SORRY,BUT THERE WERE NO SURVIVORS-YOU BLEW IT!");
-        printf("IN FACT YOU BLASTED A NEW LUNAR CRATER %8.2f FT. DEEP\n", Mph * .277777);
+        printf("IN FACT YOU BLASTED A NEW LUNAR CRATER %8.2f FT. DEEP\n",
+               Mph * .277777);
     }
 }
 
 void print_status(void) {
-    printf("%7.0f%16.0f%7.0f%15.2f%12.1f      ",
-            Elapsed,
-            trunc(Alt),
-            5280 * (Alt - trunc(Alt)),
-            3600 * V,
-            Mass - EmptyWeight);
+    printf("%7.0f%16.0f%7.0f%15.2f%12.1f      ", Elapsed, trunc(Alt),
+           5280 * (Alt - trunc(Alt)), 3600 * V, Mass - EmptyWeight);
 }
 
 // Give some hints.
@@ -231,14 +216,12 @@ void prompt_for_k(void) {
         if (!first_time) {
             // Get all the way over to the right column again
             fputs("NOT POSSIBLE", stdout);
-            for (int x = 1; x <= 51; ++x)
-                putchar('.');
+            for (int x = 1; x <= 51; ++x) putchar('.');
         }
         first_time = false;
         fputs("K=:", stdout);
         int is_valid_input = accept_double(&K);
-        if (!is_valid_input)
-            continue;
+        if (!is_valid_input) continue;
         if (K < 0) {
             fputs("No Negative Numbers\n", stdout);
             continue;
@@ -247,7 +230,7 @@ void prompt_for_k(void) {
             fputs("Minimum nonzero thrust is 8.\n", stdout);
             continue;
         }
-        if ( K > 200) {
+        if (K > 200) {
             fputs("Too Big\n", stdout);
             continue;
         }
@@ -261,14 +244,13 @@ void prompt_for_k(void) {
 // Returns 1 on success, or 0 if input did not contain a number.
 //
 // Calls exit(-1) on EOF or other failure to read input.
-int accept_double(double *value) {
-    char *buffer = NULL;
+int accept_double(double* value) {
+    char* buffer = NULL;
     size_t buffer_length = 0;
     accept_line(&buffer, &buffer_length);
     int is_valid_input = sscanf(buffer, "%lf", value);
     free(buffer);
-    if (is_valid_input != 1)
-        is_valid_input = 0;
+    if (is_valid_input != 1) is_valid_input = 0;
     return is_valid_input;
 }
 
@@ -280,27 +262,24 @@ int accept_double(double *value) {
 // If unable to read input, calls exit(-1);
 int accept_yes_or_no(void) {
     int result = -1;
-    do
-    {
+    do {
         fputs("(ANS. YES OR NO):", stdout);
-        char *buffer = NULL;
+        char* buffer = NULL;
         size_t buffer_length = 0;
         accept_line(&buffer, &buffer_length);
 
-        if (buffer_length > 0)
-        {
-            switch (buffer[0])
-            {
-            case 'y':
-            case 'Y':
-                result = 1;
-                break;
-            case 'n':
-            case 'N':
-                result = 0;
-                break;
-            default:
-                break;
+        if (buffer_length > 0) {
+            switch (buffer[0]) {
+                case 'y':
+                case 'Y':
+                    result = 1;
+                    break;
+                case 'n':
+                case 'N':
+                    result = 0;
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -314,15 +293,13 @@ int accept_yes_or_no(void) {
 // returned buffer.
 //
 // If unable to read input, calls exit(-1).
-void accept_line(char **buffer, size_t *buffer_length) {
-    if (getline(buffer, buffer_length, stdin) == -1)
-    {
+void accept_line(char** buffer, size_t* buffer_length) {
+    if (getline(buffer, buffer_length, stdin) == -1) {
         fputs("\nEND OF INPUT\n", stderr);
         exit(-1);
     }
 
-    if (echo_input)
-    {
+    if (echo_input) {
         fputs(*buffer, stdout);
     }
 }
