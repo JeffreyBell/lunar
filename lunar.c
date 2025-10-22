@@ -105,7 +105,7 @@ TurnResult play_all_turns(void) {
     for (;;) {
         if (Mass - EmptyWeight < .001) return FUELOUT;
 
-        if (FullTimestep < .001)  {
+        if (FullTimestep < .001) {
             start_turn();
             continue;
         }
@@ -125,9 +125,9 @@ TurnResult play_all_turns(void) {
         if ((V > 0) && (NextV < 0)) {
             double W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
             SubTimestep = Mass * V /
-                                (SpecificImpulse * K *
-                                (W + sqrt(W * W + V / SpecificImpulse))) +
-                            0.5;
+                              (SpecificImpulse * K *
+                               (W + sqrt(W * W + V / SpecificImpulse))) +
+                          0.5;
             apply_thrust();
             if (NextAlt <= 0) return LOOP_UNTIL_ON_MOON;  // impact
         }
