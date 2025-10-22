@@ -43,6 +43,7 @@ static TurnResult play_all_turns(void);
 static void play_a_game(void);
 static void report_landing(void);
 
+static void start_turn(void);
 static void print_status(void);
 
 // Input routines (substitutes for FOCAL ACCEPT command)
@@ -99,19 +100,15 @@ static void play_a_game(void) {
 }
 
 TurnResult play_all_turns(void) {
-start_turn:
+    start_turn();
 
-    print_status();
-    prompt_for_k();
-
-    FullTimestep = 10;
-
-turn_loop:
     for (;;) {
         if (Mass - EmptyWeight < .001) return FUELOUT;
 
-        if (FullTimestep < .001) goto start_turn;
-
+        if (FullTimestep < .001)  {
+            start_turn();
+            continue;
+        }
         SubTimestep = FullTimestep;
 
         // If we are going to run out of fuel this step do a subdivide.
@@ -126,21 +123,22 @@ turn_loop:
         // We reversed direction and started going back up.
         // We might hit ground in the midddle so subdivide the subtime.
         if ((V > 0) && (NextV < 0)) {
-            for (;;) {
-                double W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
-                SubTimestep = Mass * V /
-                                  (SpecificImpulse * K *
-                                   (W + sqrt(W * W + V / SpecificImpulse))) +
-                              0.5;
-                apply_thrust();
-                if (NextAlt <= 0) return LOOP_UNTIL_ON_MOON;  // impact
-                update_lander_state();
-                if (NextV > 0) goto turn_loop;  // Going Down next.  Normal.
-                if (V <= 0) goto turn_loop;
-            }
+            double W = (1 - Mass * G / (SpecificImpulse * K)) / 2;
+            SubTimestep = Mass * V /
+                                (SpecificImpulse * K *
+                                (W + sqrt(W * W + V / SpecificImpulse))) +
+                            0.5;
+            apply_thrust();
+            if (NextAlt <= 0) return LOOP_UNTIL_ON_MOON;  // impact
         }
         update_lander_state();
     }
+}
+
+void start_turn(void) {
+    print_status();
+    prompt_for_k();
+    FullTimestep = 10;
 }
 
 // Update next states to the game state.
