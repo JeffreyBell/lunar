@@ -1,0 +1,16 @@
+../lunar --echo < 200.test > t
+diff 200.log t
+
+../lunar --echo < good.test > t
+diff good.log t
+
+../lunar --echo < out.test > t
+diff out.log t
+
+../lunar --echo < poor.test > t
+diff poor.log t
+
+rm t
+
+
+
