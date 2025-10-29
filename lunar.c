@@ -1,6 +1,6 @@
 // Translation of
 // <http://www.cs.brandeis.edu/~storer/LunarLander/LunarLander/LunarLanderListing.jpg>
-// by Jim Storer from FOCAL to C.
+// by Jim Storer from FOCAL to C by Kristopher Johnson.  See README.
 
 #include <math.h>
 #include <stdbool.h>
@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Coming soon: turn outcomes.
+// Note: NORMAL is not yet used, but if we decided to flatten out the loop it might be.
 typedef enum { NORMAL, FUELOUT, LOOP_UNTIL_ON_MOON } TurnResult;
 
 // Global variables
@@ -21,7 +21,7 @@ typedef enum { NORMAL, FUELOUT, LOOP_UNTIL_ON_MOON } TurnResult;
 // L - Elapsed - Elapsed time (sec)
 // M - Mass -  Total weight (lbs)
 // N - EmptyWeight - Empty weight (lbs, Note: M - N is remaining fuel weight)
-// SubTimestep - Time elapsed in current 10-second turn (sec)
+// S - SubTimestep - Time elapsed in current 10-second turn (sec)
 // T - FullTimestep - Time remaining in current 10-second turn (sec)
 // V - Downward speed (miles/sec)
 // Z - SpecificImpulse Thrust per pound of fuel burned
@@ -168,10 +168,10 @@ static void setup_game(void) {
 void apply_thrust(void) {
     // Taylor series?
     double Q = SubTimestep * K / Mass;
-    double Q_2 = pow(Q, 2);
-    double Q_3 = pow(Q, 3);
-    double Q_4 = pow(Q, 4);
-    double Q_5 = pow(Q, 5);
+    double Q_2 = Q * Q;
+    double Q_3 = Q_2 * Q;
+    double Q_4 = Q_3 * Q;
+    double Q_5 = Q_4 * Q;
 
     NextV = V + G * SubTimestep +
             SpecificImpulse * (-Q - Q_2 / 2 - Q_3 / 3 - Q_4 / 4 - Q_5 / 5);
